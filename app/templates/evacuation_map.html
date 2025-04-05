@@ -1,42 +1,195 @@
 <!DOCTYPE html>
 <html lang="fr">
-    <head>
-        <meta charset="utf-8" />
-        <title>Carte d'Évacuation</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <link rel="stylesheet"
-            href="https://unpkg.com/leaflet/dist/leaflet.css" />
-        <style>
-    #map { height: 100vh; width: 100%; }
-  </style>
-    </head>
-    <body>
+<head>
+    <meta charset="utf-8" />
+    <title>Carte d'Évacuation</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+        #map { height: 100vh; width: 100%; }
+        #control-panel {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 1000;
+            box-shadow: 0 0 10px rgba(0,0,0,0.2);
+        }
+        .route-card {
+            margin-top: 10px;
+            border-left: 4px solid #666;
+            padding-left: 10px;
+        }
+        .route-active { border-left-color: #f00; }
+    </style>
+</head>
+<body>
+<div id="map"></div>
 
-        <div id="map"></div>
+<div id="control-panel">
+    <h4>Points d'évacuation</h4>
+    <div>
+        <label for="start-point">Départ:</label>
+        <input type="text" id="start-point" placeholder="Cliquez sur la carte" readonly>
+    </div>
+    <div>
+        <label for="end-point">Arrivée:</label>
+        <input type="text" id="end-point" placeholder="Cliquez sur la carte" readonly>
+    </div>
+    <button id="find-routes" disabled>Trouver des routes</button>
 
-        <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-        <script>
-  const map = L.map('map').setView([31.63, -7.99], 13); // Marrakech
+    <div id="routes-container"></div>
+</div>
 
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; OpenStreetMap contributors'
-  }).addTo(map);
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script>
+    const map = L.map('map').setView([31.63, -7.99], 13); // Marrakech
+    let startMarker, endMarker, currentRoutes = [];
+    let routeLayers = [];
 
-  // Exemple de chemin d’évacuation
-  const evacuationRoute = [
-    [31.6325, -8.003],
-    [31.634, -8.0005],
-    [31.637, -7.997]
-  ];
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
 
-  const polyline = L.polyline(evacuationRoute, { color: 'red' }).addTo(map);
-  map.fitBounds(polyline.getBounds());
+    // Load hazards
+    fetch('/api/hazards')
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                data.hazards.forEach(hazard => {
+                    const [lat, lng] = hazard.location.split(',').map(coord => parseFloat(coord.trim()));
+                    const icon = getHazardIcon(hazard.type);
+                    L.marker([lat, lng])
+                        .addTo(map)
+                        .bindPopup(`${icon} ${hazard.type.charAt(0).toUpperCase() + hazard.type.slice(1)}<br>
+                                       Sévérité: ${hazard.severity}`);
+                });
+            }
+        })
+        .catch(error => console.error('Error loading hazards:', error));
 
-  // Exemple de dangers
-  L.marker([31.63, -7.995]).addTo(map).bindPopup("⚠️ Inondation");
-  L.marker([31.637, -7.993]).addTo(map).bindPopup("🚧 Barrage de route");
+    // Define start/end points on click
+    map.on('click', function(e) {
+        if (!startMarker) {
+            startMarker = L.marker(e.latlng, {draggable: true}).addTo(map);
+            document.getElementById('start-point').value = `${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)}`;
+            startMarker.on('dragend', updateStartPosition);
+        } else if (!endMarker) {
+            endMarker = L.marker(e.latlng, {draggable: true}).addTo(map);
+            document.getElementById('end-point').value = `${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)}`;
+            endMarker.on('dragend', updateEndPosition);
+            document.getElementById('find-routes').disabled = false;
+        }
+    });
 
+    function updateStartPosition(e) {
+        const latlng = e.target.getLatLng();
+        document.getElementById('start-point').value = `${latlng.lat.toFixed(6)}, ${latlng.lng.toFixed(6)}`;
+    }
+
+    function updateEndPosition(e) {
+        const latlng = e.target.getLatLng();
+        document.getElementById('end-point').value = `${latlng.lat.toFixed(6)}, ${latlng.lng.toFixed(6)}`;
+    }
+
+    document.getElementById('find-routes').addEventListener('click', findRoutes);
+
+    function findRoutes() {
+        // Clear previous routes
+        routeLayers.forEach(layer => map.removeLayer(layer));
+        routeLayers = [];
+
+        const startPoint = document.getElementById('start-point').value;
+        const endPoint = document.getElementById('end-point').value;
+
+        fetch('/api/find_routes', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                start: startPoint,
+                end: endPoint
+            })
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    currentRoutes = data.routes;
+                    displayRoutes(data.routes);
+                }
+            })
+            .catch(error => console.error('Error finding routes:', error));
+    }
+
+    function displayRoutes(routes) {
+        const routesContainer = document.getElementById('routes-container');
+        routesContainer.innerHTML = '<h4>Routes disponibles</h4>';
+
+        const colors = ['red', 'blue', 'green'];
+
+        routes.forEach((route, index) => {
+            // Create route on map
+            const color = colors[index % colors.length];
+            const coords = route.path.map(coord => {
+                const [lat, lng] = coord.split(',').map(c => parseFloat(c));
+                return [lat, lng];
+            });
+
+            const polyline = L.polyline(coords, {color: color, weight: 5, opacity: 0.7}).addTo(map);
+            routeLayers.push(polyline);
+
+            // Create route card in control panel
+            const routeCard = document.createElement('div');
+            routeCard.className = 'route-card';
+            routeCard.innerHTML = `
+                    <strong>Route ${index + 1}</strong><br>
+                    Distance: ${(route.distance/1000).toFixed(1)} km<br>
+                    Temps: ${route.time} min<br>
+                    Risque: ${(route.risk_level * 100).toFixed(0)}%
+                    <button class="select-route" data-index="${index}">Sélectionner</button>
+                `;
+            routesContainer.appendChild(routeCard);
+
+            // Make routes selectable
+            routeCard.querySelector('.select-route').addEventListener('click', function() {
+                highlightRoute(index);
+                document.querySelectorAll('.route-card').forEach(card =>
+                    card.classList.remove('route-active'));
+                routeCard.classList.add('route-active');
+            });
+        });
+
+        // Fit map to show all routes
+        if (routeLayers.length > 0) {
+            const group = new L.featureGroup(routeLayers);
+            map.fitBounds(group.getBounds(), {padding: [50, 50]});
+        }
+    }
+
+    function highlightRoute(index) {
+        routeLayers.forEach((layer, i) => {
+            if (i === index) {
+                layer.setStyle({weight: 8, opacity: 0.9});
+                layer.bringToFront();
+            } else {
+                layer.setStyle({weight: 4, opacity: 0.5});
+            }
+        });
+    }
+
+    function getHazardIcon(hazardType) {
+        switch(hazardType.toLowerCase()) {
+            case 'flood': return '🌊';
+            case 'fire': return '🔥';
+            case 'storm': return '⛈️';
+            case 'chemical': return '☣️';
+            case 'landslide': return '⛰️';
+            default: return '⚠️';
+        }
+    }
 </script>
-
-    </body>
+</body>
 </html>

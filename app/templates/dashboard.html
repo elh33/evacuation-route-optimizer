@@ -1,81 +1,131 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Dashboard - Urban Evacuation</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <style>
-    .card { border-radius: 1rem; }
-    iframe { width: 100%; height: 500px; border: none; border-radius: 1rem; }
-  </style>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard - Urban Evacuation</title>
+    <link
+            href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+            rel="stylesheet">
+    <style>
+        .card { border-radius: 1rem; }
+        iframe { width: 100%; height: 500px; border: none; border-radius: 1rem; }
+    </style>
 </head>
 <body>
 
-  <nav class="navbar navbar-dark bg-dark px-4">
-    <span class="navbar-brand mb-0 h1">🧭 Urban Evacuation Dashboard</span>
+<nav class="navbar navbar-dark bg-dark px-4">
+            <span class="navbar-brand mb-0 h1">🧭 Urban Evacuation
+                Dashboard</span>
     <a href="index.html" class="btn btn-outline-light">Retour</a>
-  </nav>
+</nav>
 
-  <div class="container mt-4">
+<div class="container mt-4">
     <div class="row g-4">
 
-      <!-- Carte -->
-      <div class="col-md-8">
-        <div class="card shadow-sm">
-          <div class="card-header bg-primary text-white">🗺️ Carte des Évacuations</div>
-          <div class="card-body">
-            <iframe src="evacuation_map.html"></iframe>
-          </div>
-        </div>
-      </div>
-
-      <!-- Données -->
-      <div class="col-md-4">
-        <div class="card shadow-sm mb-4">
-          <div class="card-header bg-warning">⚠️ Incidents & Risques</div>
-          <div class="card-body">
-            <ul id="hazards-list">
-              <li>Chargement en cours...</li>
-            </ul>
-          </div>
+        <!-- Carte -->
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">🗺️ Carte
+                    des Évacuations</div>
+                <div class="card-body">
+                    <iframe src="evacuation_map.html"></iframe>
+                </div>
+            </div>
         </div>
 
-        <div class="card shadow-sm mb-4">
-          <div class="card-header bg-info text-white">🌦️ Météo</div>
-          <div class="card-body" id="weather-info">
-            Chargement des données météo...
-          </div>
-        </div>
+        <!-- Données -->
+        <div class="col-md-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-warning">⚠️ Incidents &
+                    Risques</div>
+                <div class="card-body">
+                    <ul id="hazards-list">
+                        <li>Chargement en cours...</li>
+                    </ul>
+                </div>
+            </div>
 
-        <div class="card shadow-sm">
-          <div class="card-header bg-success text-white">🚦 Trafic</div>
-          <div class="card-body" id="traffic-info">
-            Chargement des données de trafic...
-          </div>
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-info text-white">🌦️
+                    Météo</div>
+                <div class="card-body" id="weather-info">
+                    Chargement des données météo...
+                </div>
+            </div>
+
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">🚦
+                    Trafic</div>
+                <div class="card-body" id="traffic-info">
+                    Chargement des données de trafic...
+                </div>
+            </div>
         </div>
-      </div>
 
     </div>
-  </div>
+</div>
 
-  <script>
-    // Simulations de données (à remplacer par des appels API)
-    document.getElementById("hazards-list").innerHTML = `
-      <li>Zone inondée - Bab Doukkala</li>
-      <li>Manifestation - Gueliz</li>
-    `;
+<script>
+    // Fetch hazards data
+    fetch('/api/hazards')
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                const hazardsList = document.getElementById('hazards-list');
+                hazardsList.innerHTML = '';
+                data.hazards.forEach(hazard => {
+                    const li = document.createElement('li');
+                    li.textContent = `${hazard.type} - ${hazard.location}`;
+                    hazardsList.appendChild(li);
+                });
+            } else {
+                document.getElementById('hazards-list').innerHTML = '<li>Erreur de chargement des données</li>';
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching hazards data:', error);
+            document.getElementById('hazards-list').innerHTML = '<li>Erreur de chargement des données</li>';
+        });
 
-    document.getElementById("weather-info").innerHTML = `
-      <strong>Température :</strong> 28°C<br>
-      <strong>Vent :</strong> 10 km/h (Est)<br>
-      <strong>Pluie :</strong> Légère
-    `;
+    // Fetch weather data
+    fetch('/api/weather')
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                const weatherInfo = document.getElementById('weather-info');
+                weatherInfo.innerHTML = `
+                    <strong>Température :</strong> ${data.weather.temperature}°C<br>
+                    <strong>Vent :</strong> ${data.weather.wind_speed} km/h<br>
+                    <strong>Pluie :</strong> ${data.weather.description}
+                `;
+            } else {
+                document.getElementById('weather-info').innerHTML = 'Erreur de chargement des données météo';
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching weather data:', error);
+            document.getElementById('weather-info').innerHTML = 'Erreur de chargement des données météo';
+        });
 
-    document.getElementById("traffic-info").innerHTML = `
-      <strong>Congestion :</strong> Élevée vers Medina<br>
-      <strong>Recommandation :</strong> Utiliser route Sud
-    `;
-  </script>
+    // Fetch traffic data
+    fetch('/api/traffic')
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                const trafficInfo = document.getElementById('traffic-info');
+                trafficInfo.innerHTML = `
+                    <strong>Congestion :</strong> ${data.traffic.density}<br>
+                    <strong>Recommandation :</strong> ${data.traffic.recommendation}
+                `;
+            } else {
+                document.getElementById('traffic-info').innerHTML = 'Erreur de chargement des données de trafic';
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching traffic data:', error);
+            document.getElementById('traffic-info').innerHTML = 'Erreur de chargement des données de trafic';
+        });
+</script>
 </body>
 </html>

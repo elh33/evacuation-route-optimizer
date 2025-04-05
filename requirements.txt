@@ -4,8 +4,14 @@ scikit-learn
 tensorflow
 flask
 flask-restful
+shapely
+osmnx
+geopandas
 folium
-jupyter
-docker
-pytest
+matplotlib
+networkx
+python-dotenv
+rtree
 requests
+seaborn
+jupyter

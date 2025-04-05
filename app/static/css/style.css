@@ -1,0 +1,101 @@
+/* Main Styles */
+body {
+    background-color: #f8f9fa;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.navbar {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.card {
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    margin-bottom: 20px;
+}
+
+.card-header {
+    border-radius: 8px 8px 0 0 !important;
+    font-weight: 600;
+}
+
+/* Map Styles */
+.map-container {
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+/* Route Styles */
+.route-badge {
+    width: 20px;
+    height: 20px;
+    display: inline-block;
+    border-radius: 50%;
+    margin-right: 10px;
+}
+
+.route-low-risk {
+    background-color: #28a745;
+}
+
+.route-medium-risk {
+    background-color: #ffc107;
+}
+
+.route-high-risk {
+    background-color: #dc3545;
+}
+
+/* Weather Alert Styles */
+.weather-alert-icon {
+    font-size: 3rem;
+    margin-right: 15px;
+}
+
+/* Dashboard Section Styles */
+.dashboard-stat {
+    text-align: center;
+    padding: 20px;
+}
+
+.dashboard-stat h2 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 5px;
+}
+
+.dashboard-stat p {
+    font-size: 1rem;
+    color: #6c757d;
+    margin-bottom: 0;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .card {
+        margin-bottom: 15px;
+    }
+    
+    #map {
+        height: 400px !important;
+    }
+    
+    .dashboard-stat h2 {
+        font-size: 2rem;
+    }
+}
+
+/* Loading States */
+.loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 8px;
+    z-index: 1000;
+}

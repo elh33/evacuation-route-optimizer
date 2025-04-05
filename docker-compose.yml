@@ -1,26 +1,35 @@
 version: '3.8'
 
 services:
-  web:
+  app:
     build: .
     ports:
-      - "5000:5000"
+      - "8000:8000"
     volumes:
-      - .:/app
+      - ./data:/app/data
+      - ./models:/app/models
     environment:
-      - FLASK_ENV=development
-      - DATABASE_URL=sqlite:///app.db
-    depends_on:
-      - db
+      - DEBUG=False
+      - PORT=8000
+      - HOST=0.0.0.0
+      - DEFAULT_CITY=Paris
+      - OPENWEATHERMAP_API_KEY=${OPENWEATHERMAP_API_KEY}
+      - GOOGLE_MAPS_API_KEY=${GOOGLE_MAPS_API_KEY}
+    restart: unless-stopped
 
-  db:
-    image: postgres:latest
-    environment:
-      - POSTGRES_USER=yourusername
-      - POSTGRES_PASSWORD=yourpassword
-      - POSTGRES_DB=evacuation_db
+  notebook:
+    build: .
+    ports:
+      - "8888:8888"
     volumes:
-      - db_data:/var/lib/postgresql/data
-
-volumes:
-  db_data:
+      - ./:/app
+    environment:
+      - DEBUG=True
+    command: >
+      jupyter notebook
+      --ip=0.0.0.0
+      --port=8888
+      --no-browser
+      --allow-root
+      --NotebookApp.token=''
+      --NotebookApp.password=''

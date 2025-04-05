@@ -1,1 +1,469 @@
-# This directory is intentionally left blank.
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Evacuation Route Optimizer</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.3/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">Evacuation Route Optimizer</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/map">Evacuation Map</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/dashboard">Dashboard</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid mt-3">
+        <div class="row">
+            <div class="col-md-3">
+                <div class="card mb-3">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">City Information</h5>
+                    </div>
+                    <div class="card-body">
+                        <h3 class="text-center" id="cityName">{{ city }}</h3>
+                        <div class="d-flex justify-content-between mt-3">
+                            <div class="text-center">
+                                <h2 id="nodeCount">-</h2>
+                                <p>Road Nodes</p>
+                            </div>
+                            <div class="text-center">
+                                <h2 id="edgeCount">-</h2>
+                                <p>Road Segments</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mb-3">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0">Weather Alert</h5>
+                    </div>
+                    <div class="card-body" id="weatherAlert">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-cloud-lightning-rain fs-1 me-3"></i>
+                            <div>
+                                <h5>Storm Warning</h5>
+                                <p class="mb-0">Heavy rain expected in the next 6 hours</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header bg-danger text-white">
+                        <h5 class="mb-0">Evacuation Status</h5>
+                    </div>
+                    <div class="card-body">
+                        <h3 class="text-center text-danger mb-3" id="evacuationStatus">ACTIVE</h3>
+                        <div class="progress mb-3">
+                            <div class="progress-bar bg-success" role="progressbar" style="width: 45%" 
+                                aria-valuenow="45" aria-valuemin="0" aria-valuemax="100" id="evacuationProgress">45%</div>
+                        </div>
+                        <p class="text-center mb-0">Estimated completion: <span id="evacuationTime">2 hours 30 minutes</span></p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="card mb-3">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">Risk Heatmap</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div id="riskMap" style="height: 400px; background-color: #eee;">
+                            <!-- Risk heatmap will be inserted here -->
+                            <div class="text-center p-5">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="mt-3">Loading risk heatmap...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0">Weather Forecast</h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="weatherChart" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="card mb-3">
+                    <div class="card-header bg-warning text-dark">
+                        <h5 class="mb-0">Active Hazards</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <ul class="list-group" id="hazardsList">
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="bi bi-water me-2 text-primary"></i>
+                                    <span>Flooding</span>
+                                </div>
+                                <span class="badge bg-danger rounded-pill">High</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="bi bi-wind me-2 text-info"></i>
+                                    <span>Strong Winds</span>
+                                </div>
+                                <span class="badge bg-warning rounded-pill">Medium</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="bi bi-lightning me-2 text-warning"></i>
+                                    <span>Thunderstorm</span>
+                                </div>
+                                <span class="badge bg-warning rounded-pill">Medium</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="card mb-3">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0">Traffic Congestion</h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="trafficChart" height="200"></canvas>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header bg-dark text-white">
+                        <h5 class="mb-0">Evacuation Centers</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <ul class="list-group" id="sheltersList">
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>City Sports Hall</strong>
+                                    <div><small>15 Avenue des Sports</small></div>
+                                </div>
+                                <span class="badge bg-success rounded-pill">Open</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>Central School</strong>
+                                    <div><small>8 Rue de l'École</small></div>
+                                </div>
+                                <span class="badge bg-warning rounded-pill">85% Full</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>Exhibition Center</strong>
+                                    <div><small>42 Boulevard des Expositions</small></div>
+                                </div>
+                                <span class="badge bg-success rounded-pill">Open</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-dark text-white mt-3 py-3">
+        <div class="container text-center">
+            <p>Real-Time Evacuation Route Optimization System</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            loadCityData();
+            initWeatherChart();
+            initTrafficChart();
+        });
+        
+        // Load city data
+        function loadCityData() {
+            const city = "{{ city }}";
+            
+            fetch('/api/load_city', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ city: city })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    document.getElementById('cityName').textContent = city;
+                    document.getElementById('nodeCount').textContent = data.nodes.toLocaleString();
+                    document.getElementById('edgeCount').textContent = data.edges.toLocaleString();
+                    
+                    // Load weather and hazard data
+                    loadWeatherData();
+                    loadHazardData();
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        }
+        
+        // Load weather data
+        function loadWeatherData() {
+            fetch('/api/weather')
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // Update weather alert based on conditions
+                    const weather = data.weather;
+                    let alertHTML = '';
+                    
+                    if (weather.precipitation > 10) {
+                        alertHTML = `
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-cloud-lightning-rain fs-1 me-3"></i>
+                                <div>
+                                    <h5>Heavy Rain Warning</h5>
+                                    <p class="mb-0">Precipitation: ${weather.precipitation} mm</p>
+                                </div>
+                            </div>
+                        `;
+                    } else if (weather.wind_speed > 10) {
+                        alertHTML = `
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-wind fs-1 me-3"></i>
+                                <div>
+                                    <h5>Strong Wind Alert</h5>
+                                    <p class="mb-0">Wind Speed: ${weather.wind_speed} m/s</p>
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        alertHTML = `
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-thermometer-half fs-1 me-3"></i>
+                                <div>
+                                    <h5>Weather Update</h5>
+                                    <p class="mb-0">${weather.description}, ${weather.temperature}°C</p>
+                                </div>
+                            </div>
+                        `;
+                    }
+                    
+                    document.getElementById('weatherAlert').innerHTML = alertHTML;
+                    
+                    // Update weather chart data
+                    updateWeatherChartData(data.weather);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        }
+        
+        // Load hazard data
+        function loadHazardData() {
+            fetch('/api/hazards')
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // Update hazards list
+                    let hazardsHTML = '';
+                    
+                    data.hazards.forEach(hazard => {
+                        const severityClass = hazard.severity > 0.7 ? 'danger' : 
+                                             hazard.severity > 0.4 ? 'warning' : 'success';
+                        const severityText = hazard.severity > 0.7 ? 'High' : 
+                                            hazard.severity > 0.4 ? 'Medium' : 'Low';
+                        const icon = getHazardIcon(hazard.type);
+                        
+                        hazardsHTML += `
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="${icon} me-2"></i>
+                                    <span>${capitalizeFirstLetter(hazard.type)}</span>
+                                </div>
+                                <span class="badge bg-${severityClass} rounded-pill">${severityText}</span>
+                            </li>
+                        `;
+                    });
+                    
+                    if (hazardsHTML) {
+                        document.getElementById('hazardsList').innerHTML = hazardsHTML;
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        }
+        
+        // Get icon class for hazard type
+        function getHazardIcon(type) {
+            switch (type.toLowerCase()) {
+                case 'flood':
+                    return 'bi bi-water text-primary';
+                case 'fire':
+                    return 'bi bi-fire text-danger';
+                case 'storm':
+                    return 'bi bi-cloud-lightning-rain text-info';
+                case 'wind':
+                    return 'bi bi-wind text-secondary';
+                default:
+                    return 'bi bi-exclamation-triangle text-warning';
+            }
+        }
+        
+        // Initialize weather forecast chart
+        function initWeatherChart() {
+            const ctx = document.getElementById('weatherChart').getContext('2d');
+            
+            const weatherChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Now', '+1h', '+2h', '+3h', '+4h', '+5h', '+6h'],
+                    datasets: [
+                        {
+                            label: 'Temperature (°C)',
+                            data: [22, 21, 20, 19, 19, 18, 17],
+                            borderColor: 'rgba(255, 99, 132, 1)',
+                            backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                            tension: 0.4,
+                            yAxisID: 'y',
+                        },
+                        {
+                            label: 'Precipitation (mm)',
+                            data: [0, 2, 8, 15, 20, 10, 5],
+                            borderColor: 'rgba(54, 162, 235, 1)',
+                            backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                            tension: 0.4,
+                            yAxisID: 'y1',
+                        }
+                    ]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: {
+                                display: true,
+                                text: 'Temperature (°C)'
+                            }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            title: {
+                                display: true,
+                                text: 'Precipitation (mm)'
+                            },
+                            grid: {
+                                drawOnChartArea: false
+                            }
+                        }
+                    }
+                }
+            });
+            
+            window.weatherChart = weatherChart;
+        }
+        
+        // Initialize traffic congestion chart
+        function initTrafficChart() {
+            const ctx = document.getElementById('trafficChart').getContext('2d');
+            
+            const trafficChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Low', 'Medium', 'High', 'Severe'],
+                    datasets: [{
+                        data: [25, 35, 30, 10],
+                        backgroundColor: [
+                            'rgba(40, 167, 69, 0.7)',
+                            'rgba(255, 193, 7, 0.7)',
+                            'rgba(255, 128, 0, 0.7)',
+                            'rgba(220, 53, 69, 0.7)'
+                        ],
+                        borderColor: [
+                            'rgba(40, 167, 69, 1)',
+                            'rgba(255, 193, 7, 1)',
+                            'rgba(255, 128, 0, 1)',
+                            'rgba(220, 53, 69, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                        },
+                        title: {
+                            display: true,
+                            text: 'Road Congestion Levels'
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Update weather chart with new data
+        function updateWeatherChartData(currentWeather) {
+            // This is a placeholder for actual forecast data
+            // In a real system, you would fetch forecast data from API
+            
+            // Generate some random forecast data based on current weather
+            const temperatures = [currentWeather.temperature];
+            const precipitation = [currentWeather.precipitation];
+            
+            for (let i = 0; i < 6; i++) {
+                // Random temperature change between -2 and +2 degrees
+                const tempChange = Math.random() * 4 - 2;
+                temperatures.push(Math.round((temperatures[i] + tempChange) * 10) / 10);
+                
+                // Random precipitation (more likely if current precipitation is high)
+                const rainChance = currentWeather.precipitation > 5 ? 0.7 : 0.3;
+                const willRain = Math.random() < rainChance;
+                precipitation.push(willRain ? Math.round(Math.random() * 25) : 0);
+            }
+            
+            // Update chart data
+            if (window.weatherChart) {
+                window.weatherChart.data.datasets[0].data = temperatures;
+                window.weatherChart.data.datasets[1].data = precipitation;
+                window.weatherChart.update();
+            }
+        }
+        
+        function capitalizeFirstLetter(string) {
+            return string.charAt(0).toUpperCase() + string.slice(1);
+        }
+    </script>
+</body>
+</html>
